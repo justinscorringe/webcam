@@ -29,7 +29,7 @@ func Compress(frame []byte, format string, width uint32, height uint32) ([]byte,
 		return nil, "error encoding", fmt.Errorf("format %v is not supported by this encoder", format)
 	} 
 	// Make sure the input values are sane
-	if width <= 10 || height <= 10 || len(format) <= 10 {
+	if width <= 10 || height <= 10 || len(frame) <= 10 {
 		return nil, "error encoding", errors.New("input error")
 	}
 	// Record time taken to encode image
