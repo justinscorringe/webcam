@@ -204,7 +204,7 @@ func encodeJPEG(img image.Image) ([]byte, error) {
 
 // Declare our library of format types upon initialization
 func init() {
-	formats := make(map[string]func([]byte, string, uint32, uint32)([]byte, error))
+	formats = make(map[string]func([]byte, string, uint32, uint32)([]byte, error))
 	for _, format := range(packedYUV) {
 		formats[format] = decodePackedYUV
 	}
