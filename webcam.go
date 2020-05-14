@@ -1,6 +1,3 @@
-// Library for working with webcams and other video capturing devices.
-// It depends entirely on v4l2 framework, thus will compile and work
-// only on Linux machine
 package webcam
 
 import (
@@ -10,8 +7,8 @@ import (
 	"unsafe"
 )
 
-// Webcam object
-type Webcam struct {
+// Camera object
+type Camera struct {
 	fd        uintptr
 	bufcount  uint32
 	buffers   [][]byte
@@ -26,10 +23,10 @@ type Control struct {
 	Max  int32
 }
 
-// Open a webcam with a given path
+// Open a camera with a given path
 // Checks if device is a v4l2 device and if it is
 // capable to stream video
-func Open(path string) (*Webcam, error) {
+func Open(path string) (*Camera, error) {
 
 	handle, err := unix.Open(path, unix.O_RDWR|unix.O_NONBLOCK, 0666)
 	fd := uintptr(handle)
@@ -52,7 +49,7 @@ func Open(path string) (*Webcam, error) {
 		return nil, errors.New("Device does not support the streaming I/O method")
 	}
 
-	w := new(Webcam)
+	w := new(Camera)
 	w.fd = uintptr(fd)
 	w.bufcount = 256
 	return w, nil
@@ -60,11 +57,7 @@ func Open(path string) (*Webcam, error) {
 
 // Returns image formats supported by the device alongside with
 // their text description
-// Not that this function is somewhat experimental. Frames are not ordered in
-// any meaning, also duplicates can occur so it's up to developer to clean it up.
-// See http://linuxtv.org/downloads/v4l-dvb-apis/vidioc-enum-framesizes.html
-// for more information
-func (w *Webcam) GetSupportedFormats() map[PixelFormat]string {
+func (w *Camera) GetSupportedFormats() map[PixelFormat]string {
 
 	result := make(map[PixelFormat]string)
 	var err error
@@ -86,7 +79,7 @@ func (w *Webcam) GetSupportedFormats() map[PixelFormat]string {
 }
 
 // Returns supported frame sizes for a given image format
-func (w *Webcam) GetSupportedFrameSizes(f PixelFormat) []FrameSize {
+func (w *Camera) GetSupportedFrameSizes(f PixelFormat) []FrameSize {
 	result := make([]FrameSize, 0)
 
 	var index uint32
@@ -109,7 +102,7 @@ func (w *Webcam) GetSupportedFrameSizes(f PixelFormat) []FrameSize {
 // Note, that device driver can change that values.
 // Resulting values are returned by a function
 // alongside with an error if any
-func (w *Webcam) SetImageFormat(f PixelFormat, width, height uint32) (PixelFormat, uint32, uint32, error) {
+func (w *Camera) SetImageFormat(f PixelFormat, width, height uint32) (PixelFormat, uint32, uint32, error) {
 
 	code := uint32(f)
 	cw := width
@@ -126,7 +119,7 @@ func (w *Webcam) SetImageFormat(f PixelFormat, width, height uint32) (PixelForma
 
 // Set the number of frames to be buffered.
 // Not allowed if streaming is already on.
-func (w *Webcam) SetBufferCount(count uint32) error {
+func (w *Camera) SetBufferCount(count uint32) error {
 	if w.streaming {
 		return errors.New("Cannot set buffer count when streaming")
 	}
@@ -135,7 +128,7 @@ func (w *Webcam) SetBufferCount(count uint32) error {
 }
 
 // Get a map of available controls.
-func (w *Webcam) GetControls() map[ControlID]Control {
+func (w *Camera) GetControls() map[ControlID]Control {
 	cmap := make(map[ControlID]Control)
 	for _, c := range queryControls(w.fd) {
 		cmap[ControlID(c.id)] = Control{c.name, c.min, c.max}
@@ -144,17 +137,17 @@ func (w *Webcam) GetControls() map[ControlID]Control {
 }
 
 // Get the value of a control.
-func (w *Webcam) GetControl(id ControlID) (int32, error) {
+func (w *Camera) GetControl(id ControlID) (int32, error) {
 	return getControl(w.fd, uint32(id))
 }
 
 // Set a control.
-func (w *Webcam) SetControl(id ControlID, value int32) error {
+func (w *Camera) SetControl(id ControlID, value int32) error {
 	return setControl(w.fd, uint32(id), value)
 }
 
 // Start streaming process
-func (w *Webcam) StartStreaming() error {
+func (w *Camera) StartStreaming() error {
 	if w.streaming {
 		return errors.New("Already streaming")
 	}
@@ -198,10 +191,10 @@ func (w *Webcam) StartStreaming() error {
 	return nil
 }
 
-// Read a single frame from the webcam
+// Read a single frame from the Camera
 // If frame cannot be read at the moment
 // function will return empty slice
-func (w *Webcam) ReadFrame() ([]byte, error) {
+func (w *Camera) ReadFrame() ([]byte, error) {
 	result, index, err := w.GetFrame()
 	if err == nil {
 		w.ReleaseFrame(index)
@@ -209,11 +202,11 @@ func (w *Webcam) ReadFrame() ([]byte, error) {
 	return result, err
 }
 
-// Get a single frame from the webcam and return the frame and
+// Get a single frame from the Camera and return the frame and
 // the buffer index. To return the buffer, ReleaseFrame must be called.
 // If frame cannot be read at the moment
 // function will return empty slice
-func (w *Webcam) GetFrame() ([]byte, uint32, error) {
+func (w *Camera) GetFrame() ([]byte, uint32, error) {
 	var index uint32
 	var length uint32
 
@@ -228,12 +221,12 @@ func (w *Webcam) GetFrame() ([]byte, uint32, error) {
 }
 
 // Release the frame buffer that was obtained via GetFrame
-func (w *Webcam) ReleaseFrame(index uint32) error {
+func (w *Camera) ReleaseFrame(index uint32) error {
 	return mmapEnqueueBuffer(w.fd, index)
 }
 
 // Wait until frame could be read
-func (w *Webcam) WaitForFrame(timeout uint32) error {
+func (w *Camera) WaitForFrame(timeout uint32) error {
 
 	count, err := waitForFrame(w.fd, timeout)
 
@@ -246,7 +239,7 @@ func (w *Webcam) WaitForFrame(timeout uint32) error {
 	}
 }
 
-func (w *Webcam) StopStreaming() error {
+func (w *Camera) StopStreaming() error {
 	if !w.streaming {
 		return errors.New("Request to stop streaming when not streaming")
 	}
@@ -262,7 +255,7 @@ func (w *Webcam) StopStreaming() error {
 }
 
 // Close the device
-func (w *Webcam) Close() error {
+func (w *Camera) Close() error {
 	if w.streaming {
 		w.StopStreaming()
 	}
@@ -273,7 +266,7 @@ func (w *Webcam) Close() error {
 }
 
 // Sets automatic white balance correction
-func (w *Webcam) SetAutoWhiteBalance(val bool) error {
+func (w *Camera) SetAutoWhiteBalance(val bool) error {
 	v := int32(0)
 	if val {
 		v = 1
