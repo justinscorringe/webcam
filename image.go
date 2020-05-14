@@ -23,6 +23,9 @@ var rgba = []string{"RGB4", "BGR4"}
 func Compress(frame []byte, format string, width uint32, height uint32) ([]byte, string, error) {
 	// Check we actually support this format
 	if _, ok := formats[format]; !ok {
+		if format == "JPEG" || format == "MJPG" {
+			return frame, "already compressed", nil
+		}
 		return nil, "error encoding", fmt.Errorf("format %v is not supported by this encoder", format)
 	} 
 	// Make sure the input values are sane
