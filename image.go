@@ -55,18 +55,18 @@ func decodePackedYUV(frame []byte, f string, width uint32, height uint32) ([]byt
 		case "YUYV":
 			yuyv.Y[i*2] = frame[ii]
 			yuyv.Y[i*2+1] = frame[ii+2]
+			yuyv.Cb[i] = frame[ii+1]
+			yuyv.Cr[i] = frame[ii+3]
+		case "YVYU":
+			yuyv.Y[i*2] = frame[ii]
+			yuyv.Y[i*2+1] = frame[ii+2]
 			yuyv.Cb[i] = frame[ii+3]
 			yuyv.Cr[i] = frame[ii+1]
-		case "YVYU":
+		case "YUNV":
 			yuyv.Y[i*2] = frame[ii]
 			yuyv.Y[i*2+1] = frame[ii+2]
 			yuyv.Cb[i] = frame[ii+1]
 			yuyv.Cr[i] = frame[ii+3]
-		case "YUNV":
-			yuyv.Y[i*2] = frame[ii]
-			yuyv.Y[i*2+1] = frame[ii+2]
-			yuyv.Cb[i] = frame[ii+3]
-			yuyv.Cr[i] = frame[ii+1]
 		case "VYUY":
 			yuyv.Y[i*2] = frame[ii+1]
 			yuyv.Y[i*2+1] = frame[ii+3]
