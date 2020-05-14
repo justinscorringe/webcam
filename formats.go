@@ -3,10 +3,6 @@ package webcam
 import "fmt"
 
 // Represents image format code used by V4L2 subsystem.
-// Number of formats can be different in various
-// Linux kernel versions
-// See /usr/include/linux/videodev2.h for full list
-// of supported image formats
 type PixelFormat uint32
 // Struct that describes frame size supported by a webcam
 // For fixed sizes min and max values will be the same and
