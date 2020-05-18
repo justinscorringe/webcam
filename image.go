@@ -1,17 +1,18 @@
 package webcam
 
 import (
-	"fmt"
-	"time"
 	"bytes"
+	"fmt"
 	"image"
 	"image/jpeg"
 	"io/ioutil"
-	"github.com/pkg/errors"
+	"time"
 
+	"github.com/pkg/errors"
 )
 
-var formats map[string]func([]byte, string, uint32, uint32, uint32)([]byte, error)
+var formats map[string]func([]byte, string, uint32, uint32, uint32) ([]byte, error)
+
 // TODO: When more formats are supported, split by ratio ie; 4:2:2 / 4:1:1
 var packedYUV = []string{"YUYV", "YVYU", "UYVY", "VYUY"}
 var planarYUV = []string{"YU12", "YV12", "NV12", "NV21"}
@@ -24,10 +25,10 @@ func Compress(frame []byte, format string, width uint32, height uint32, quality 
 	// Check we actually support this format
 	if _, ok := formats[format]; !ok {
 		if format == "JPEG" || format == "MJPG" {
-			return frame, "already compressed", nil
+			return frame, "hardware compressed", nil
 		}
 		return nil, "error encoding", fmt.Errorf("format %v is not supported by this encoder", format)
-	} 
+	}
 	// Make sure the input values are sane
 	if width <= 10 || height <= 10 || len(frame) <= 10 {
 		return nil, "error encoding", errors.New("input error")
@@ -46,7 +47,7 @@ func Compress(frame []byte, format string, width uint32, height uint32, quality 
 
 // YUV 4:2:2 decoder. Supports YUYV, YVYU, UYVY, VYUY, YUNV.
 func decodePackedYUV(frame []byte, f string, width uint32, height uint32, quality uint32) ([]byte, error) {
-	
+
 	yuyv := image.NewYCbCr(image.Rect(0, 0, int(width), int(height)), image.YCbCrSubsampleRatio422)
 	for i := range yuyv.Cb {
 		ii := i * 4
@@ -83,12 +84,13 @@ func decodePackedYUV(frame []byte, f string, width uint32, height uint32, qualit
 	compressedImage, err := encodeJPEG(yuyv, quality)
 	if err != nil {
 		return nil, err
-	} 
+	}
 	return compressedImage, nil
 }
+
 // YUV 4:2:0 decoder. Supports YU12, YV12, I420, NV12, NV21
 func decodePlanarYUV(frame []byte, f string, width uint32, height uint32, quality uint32) ([]byte, error) {
-	
+
 	yuv := image.NewYCbCr(image.Rect(0, 0, int(width), int(height)), image.YCbCrSubsampleRatio420)
 	// Copy luma plane
 	for i := range yuv.Y {
@@ -132,12 +134,13 @@ func decodePlanarYUV(frame []byte, f string, width uint32, height uint32, qualit
 	compressedImage, err := encodeJPEG(yuv, quality)
 	if err != nil {
 		return nil, err
-	} 
+	}
 	return compressedImage, nil
 }
+
 // RGB decoder, it supports RGB3, BGR3.
 func decodeRGB(frame []byte, f string, width uint32, height uint32, quality uint32) ([]byte, error) {
-	
+
 	rgb := image.NewRGBA(image.Rect(0, 0, int(width), int(height)))
 	rgbbuf := make([]uint8, 3*int(width)*int(height))
 	for i := range frame {
@@ -159,12 +162,13 @@ func decodeRGB(frame []byte, f string, width uint32, height uint32, quality uint
 	compressedImage, err := encodeJPEG(rgb, quality)
 	if err != nil {
 		return nil, err
-	} 
+	}
 	return compressedImage, nil
 }
+
 // This is our RGBA decoder, it supports RGB4 and BGR4.
 func decodeRGBA(frame []byte, f string, width uint32, height uint32, quality uint32) ([]byte, error) {
-	
+
 	rgba := image.NewRGBA(image.Rect(0, 0, int(width), int(height)))
 	rgbabuf := make([]uint8, 4*int(width)*int(height))
 	for i := range frame {
@@ -189,13 +193,14 @@ func decodeRGBA(frame []byte, f string, width uint32, height uint32, quality uin
 	compressedImage, err := encodeJPEG(rgba, quality)
 	if err != nil {
 		return nil, err
-	} 
+	}
 	return compressedImage, nil
 }
+
 // Encodes our golang image.Image into a compressed JPEG byte array
 func encodeJPEG(img image.Image, quality uint32) ([]byte, error) {
 	buf := &bytes.Buffer{}
-	compression := jpeg.Options{Quality:int(quality)}
+	compression := jpeg.Options{Quality: int(quality)}
 	if err := jpeg.Encode(buf, img, &compression); err != nil {
 		return nil, err
 	}
@@ -203,19 +208,27 @@ func encodeJPEG(img image.Image, quality uint32) ([]byte, error) {
 	return readBuf, nil
 }
 
+// Interface to check if format is supported
+func CompressionAvailable(format string) bool {
+	if _, ok := formats[format]; ok {
+		return true
+	}
+	return false
+}
+
 // Declare our library of format types upon initialization
 func init() {
-	formats = make(map[string]func([]byte, string, uint32, uint32, uint32)([]byte, error))
-	for _, format := range(packedYUV) {
+	formats = make(map[string]func([]byte, string, uint32, uint32, uint32) ([]byte, error))
+	for _, format := range packedYUV {
 		formats[format] = decodePackedYUV
 	}
-	for _, format := range(planarYUV) {
+	for _, format := range planarYUV {
 		formats[format] = decodePlanarYUV
 	}
-	for _, format := range(rgb) {
+	for _, format := range rgb {
 		formats[format] = decodeRGB
 	}
-	for _, format := range(rgba) {
+	for _, format := range rgba {
 		formats[format] = decodeRGBA
 	}
 }
