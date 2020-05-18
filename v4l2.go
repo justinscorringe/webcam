@@ -203,7 +203,7 @@ type v4l2_control struct {
 	value int32
 }
 
-func checkCapabilities(fd uintptr) (supportsVideoCapture bool, supportsVideoStreaming bool, err error) {
+func checkCapabilities(fd uintptr) (supportsVideoCapture bool, supportsVideoStreaming bool, deviceCard string, err error) {
 
 	caps := &v4l2_capability{}
 
@@ -215,6 +215,17 @@ func checkCapabilities(fd uintptr) (supportsVideoCapture bool, supportsVideoStre
 
 	supportsVideoCapture = (caps.capabilities & V4L2_CAP_VIDEO_CAPTURE) != 0
 	supportsVideoStreaming = (caps.capabilities & V4L2_CAP_STREAMING) != 0
+	max := len(caps.card)
+
+	index := 0
+
+	for ; index < max; index++ {
+		if 0 == caps.card[index] {
+			break
+		}
+	}
+
+	deviceCard = string(caps.card[:index])
 	return
 
 }

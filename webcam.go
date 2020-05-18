@@ -2,14 +2,16 @@ package webcam
 
 import (
 	"errors"
-	"golang.org/x/sys/unix"
 	"reflect"
 	"unsafe"
+
+	"golang.org/x/sys/unix"
 )
 
 // Camera object
 type Camera struct {
 	fd        uintptr
+	card      string
 	bufcount  uint32
 	buffers   [][]byte
 	streaming bool
@@ -35,7 +37,7 @@ func Open(path string) (*Camera, error) {
 		return nil, err
 	}
 
-	supportsVideoCapture, supportsVideoStreaming, err := checkCapabilities(fd)
+	supportsVideoCapture, supportsVideoStreaming, card, err := checkCapabilities(fd)
 
 	if err != nil {
 		return nil, err
@@ -52,6 +54,7 @@ func Open(path string) (*Camera, error) {
 	w := new(Camera)
 	w.fd = uintptr(fd)
 	w.bufcount = 256
+	w.card = card
 	return w, nil
 }
 
