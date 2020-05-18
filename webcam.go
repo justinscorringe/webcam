@@ -59,7 +59,7 @@ func Open(path string) (*Camera, error) {
 }
 
 // Get the card/name of the device
-func Card(w *Camera) (string, error) {
+func (w *Camera) Card() (string, error) {
 	if w.card != "" {
 		return w.card, nil
 	} else {
