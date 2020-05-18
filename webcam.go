@@ -58,6 +58,15 @@ func Open(path string) (*Camera, error) {
 	return w, nil
 }
 
+// Get the card/name of the device
+func Card(w *Camera) (string, error) {
+	if w.card != "" {
+		return w.card, nil
+	} else {
+		return "", errors.New("No device name found")
+	}
+}
+
 // Returns image formats supported by the device alongside with
 // their text description
 func (w *Camera) GetSupportedFormats() map[PixelFormat]string {
