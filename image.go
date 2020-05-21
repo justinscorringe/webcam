@@ -25,7 +25,7 @@ func Compress(frame []byte, format string, width uint32, height uint32, quality 
 	// Check we actually support this format
 	if _, ok := formats[format]; !ok {
 		if format == "JPEG" || format == "MJPG" {
-			return frame, "hardware compressed", nil
+			return frame, fmt.Sprintf("hardware compressed %s of length %v; resolution %v x %v", format, len(frame), width, height), nil
 		}
 		return nil, "error encoding", fmt.Errorf("format %v is not supported by this encoder", format)
 	}
