@@ -8,10 +8,12 @@ import (
 	"io/ioutil"
 	"time"
 
+	"github.com/disintegration/imaging"
+
 	"github.com/pkg/errors"
 )
 
-var formats map[string]func([]byte, string, uint32, uint32, uint32) ([]byte, error)
+var formats map[string]func([]byte, string, uint32, uint32) (image.Image, error)
 
 // TODO: When more formats are supported, split by ratio ie; 4:2:2 / 4:1:1
 var packedYUV = []string{"YUYV", "YVYU", "UYVY", "VYUY"}
@@ -21,7 +23,7 @@ var rgba = []string{"RGB4", "BGR4"}
 
 // Conversion of raw image formats to compressed jpegs
 // Conversion is categorised by a string 4CC code for code readibility
-func Compress(frame []byte, format string, width uint32, height uint32, quality uint32) ([]byte, string, error) {
+func Compress(frame []byte, format string, width uint32, height uint32, quality uint32, rotation uint32) ([]byte, string, error) {
 	// Check we actually support this format
 	if _, ok := formats[format]; !ok {
 		if format == "JPEG" || format == "MJPG" {
@@ -37,16 +39,23 @@ func Compress(frame []byte, format string, width uint32, height uint32, quality 
 	start := time.Now()
 	// Encode our image
 	encoder := formats[format]
-	jpegFrame, err := encoder(frame, format, width, height, quality)
+	decodedImage, err := encoder(frame, format, width, height)
 	if err != nil {
 		return nil, "error encoding", err
 	}
-	encoderMsg := fmt.Sprintf("Encoded image format %s; length %v; resolution %v x %v; to jpeg of length %v in %s", format, len(frame), width, height, len(jpegFrame), time.Since(start))
-	return jpegFrame, encoderMsg, nil
+	rotatedImage := rotateImage(decodedImage, rotation)
+
+	// Compress to jpeg
+	compressedImage, err := encodeJPEG(rotatedImage, quality)
+	if err != nil {
+		return nil, "error compressing", err
+	}
+	encoderMsg := fmt.Sprintf("Encoded image format %s; length %v; resolution %v x %v; to jpeg of length %v in %s", format, len(frame), width, height, len(compressedImage), time.Since(start))
+	return compressedImage, encoderMsg, nil
 }
 
 // YUV 4:2:2 decoder. Supports YUYV, YVYU, UYVY, VYUY, YUNV.
-func decodePackedYUV(frame []byte, f string, width uint32, height uint32, quality uint32) ([]byte, error) {
+func decodePackedYUV(frame []byte, f string, width uint32, height uint32) (image.Image, error) {
 
 	yuyv := image.NewYCbCr(image.Rect(0, 0, int(width), int(height)), image.YCbCrSubsampleRatio422)
 	for i := range yuyv.Cb {
@@ -80,16 +89,12 @@ func decodePackedYUV(frame []byte, f string, width uint32, height uint32, qualit
 			yuyv.Cr[i] = frame[ii+2]
 		}
 	}
-	// Compress to jpeg
-	compressedImage, err := encodeJPEG(yuyv, quality)
-	if err != nil {
-		return nil, err
-	}
-	return compressedImage, nil
+
+	return yuyv, nil
 }
 
 // YUV 4:2:0 decoder. Supports YU12, YV12, I420, NV12, NV21
-func decodePlanarYUV(frame []byte, f string, width uint32, height uint32, quality uint32) ([]byte, error) {
+func decodePlanarYUV(frame []byte, f string, width uint32, height uint32) (image.Image, error) {
 
 	yuv := image.NewYCbCr(image.Rect(0, 0, int(width), int(height)), image.YCbCrSubsampleRatio420)
 	// Copy luma plane
@@ -130,16 +135,11 @@ func decodePlanarYUV(frame []byte, f string, width uint32, height uint32, qualit
 			yuv.Cb[i] = frame[i+len(yuv.Y)+1]
 		}
 	}
-	// Compress to jpeg
-	compressedImage, err := encodeJPEG(yuv, quality)
-	if err != nil {
-		return nil, err
-	}
-	return compressedImage, nil
+	return yuv, nil
 }
 
 // RGB decoder, it supports RGB3, BGR3.
-func decodeRGB(frame []byte, f string, width uint32, height uint32, quality uint32) ([]byte, error) {
+func decodeRGB(frame []byte, f string, width uint32, height uint32) (image.Image, error) {
 
 	rgb := image.NewRGBA(image.Rect(0, 0, int(width), int(height)))
 	rgbbuf := make([]uint8, 3*int(width)*int(height))
@@ -159,15 +159,11 @@ func decodeRGB(frame []byte, f string, width uint32, height uint32, quality uint
 	}
 	rgb.Pix = rgbbuf
 	rgb.Stride = 3 * int(width)
-	compressedImage, err := encodeJPEG(rgb, quality)
-	if err != nil {
-		return nil, err
-	}
-	return compressedImage, nil
+	return rgb, nil
 }
 
 // This is our RGBA decoder, it supports RGB4 and BGR4.
-func decodeRGBA(frame []byte, f string, width uint32, height uint32, quality uint32) ([]byte, error) {
+func decodeRGBA(frame []byte, f string, width uint32, height uint32) (image.Image, error) {
 
 	rgba := image.NewRGBA(image.Rect(0, 0, int(width), int(height)))
 	rgbabuf := make([]uint8, 4*int(width)*int(height))
@@ -189,12 +185,22 @@ func decodeRGBA(frame []byte, f string, width uint32, height uint32, quality uin
 	}
 	rgba.Pix = rgbabuf
 	rgba.Stride = 4 * int(width)
-	// Compress to jpeg
-	compressedImage, err := encodeJPEG(rgba, quality)
-	if err != nil {
-		return nil, err
+	return rgba, nil
+}
+
+// Rotates the image based on int argument (90, 180, 270)
+func rotateImage(img image.Image, rotation uint32) image.Image {
+
+	switch rotation {
+	case 90:
+		img = imaging.Rotate90(img)
+	case 180:
+		img = imaging.Rotate180(img)
+	case 270:
+		img = imaging.Rotate270(img)
+	default:
 	}
-	return compressedImage, nil
+	return img
 }
 
 // Encodes our golang image.Image into a compressed JPEG byte array
@@ -218,7 +224,7 @@ func CompressionAvailable(format string) bool {
 
 // Declare our library of format types upon initialization
 func init() {
-	formats = make(map[string]func([]byte, string, uint32, uint32, uint32) ([]byte, error))
+	formats = make(map[string]func([]byte, string, uint32, uint32) (image.Image, error))
 	for _, format := range packedYUV {
 		formats[format] = decodePackedYUV
 	}

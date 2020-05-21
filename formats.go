@@ -25,7 +25,7 @@ func (s FrameSize) GetString() string {
 	if s.StepWidth == 0 && s.StepHeight == 0 {
 		return fmt.Sprintf("%dx%d", s.MaxWidth, s.MaxHeight)
 	} else {
-		return fmt.Sprintf("Max: %dx%d\nMin:  %dx%d\n Step:  %dx%d", s.MaxWidth, s.MaxHeight, s.MinWidth, s.MinHeight, s.StepWidth, s.StepHeight)
+		return fmt.Sprintf("Max: %dx%d   Min:  %dx%d   Step:  %dx%d", s.MaxWidth, s.MaxHeight, s.MinWidth, s.MinHeight, s.StepWidth, s.StepHeight)
 	}
 }
 
