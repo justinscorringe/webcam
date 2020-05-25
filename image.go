@@ -105,34 +105,36 @@ func decodePlanarYUV(frame []byte, f string, width uint32, height uint32) (image
 	switch f {
 	case "YU12":
 		for i := range yuv.Cr {
-			yuv.Cr[i] = frame[i+len(yuv.Y)]
+			yuv.Cb[i] = frame[i+len(yuv.Y)]
 		}
 		for i := range yuv.Cb {
-			yuv.Cb[i] = frame[i+len(yuv.Y)+len(yuv.Cr)]
+			yuv.Cr[i] = frame[i+len(yuv.Y)+len(yuv.Cr)]
 		}
 	case "YV12":
-		for i := range yuv.Cr {
+		for i := range yuv.Cb {
 			yuv.Cr[i] = frame[i+len(yuv.Y)]
 		}
-		for i := range yuv.Cb {
+		for i := range yuv.Cr {
 			yuv.Cb[i] = frame[i+len(yuv.Y)+len(yuv.Cr)]
 		}
 	case "I420":
-		for i := range yuv.Cr {
-			yuv.Cr[i] = frame[i+len(yuv.Y)]
-		}
 		for i := range yuv.Cb {
-			yuv.Cb[i] = frame[i+len(yuv.Y)+len(yuv.Cr)]
+			yuv.Cb[i] = frame[i+len(yuv.Y)]
+		}
+		for i := range yuv.Cr {
+			yuv.Cr[i] = frame[i+len(yuv.Y)+len(yuv.Cr)]
 		}
 	case "NV12":
 		for i := range yuv.Cr {
-			yuv.Cb[i] = frame[i+len(yuv.Y)]
-			yuv.Cr[i] = frame[i+len(yuv.Y)+1]
+			ii := 2 * i
+			yuv.Cb[i] = frame[len(yuv.Y)+ii]
+			yuv.Cr[i] = frame[len(yuv.Y)+ii+1]
 		}
 	case "NV21":
 		for i := range yuv.Cr {
-			yuv.Cr[i] = frame[i+len(yuv.Y)]
-			yuv.Cb[i] = frame[i+len(yuv.Y)+1]
+			ii := 2 * i
+			yuv.Cb[i] = frame[len(yuv.Y)+ii+1]
+			yuv.Cr[i] = frame[len(yuv.Y)+ii]
 		}
 	}
 	return yuv, nil
