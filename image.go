@@ -173,14 +173,14 @@ func decodeRGBA(frame []byte, f string, width uint32, height uint32) (image.Imag
 		if i%4 == 0 {
 			switch f {
 			case "RGB4":
-				rgbabuf[i] = frame[i]
-				rgbabuf[i+1] = frame[i+1]
-				rgbabuf[i+2] = frame[i+2]
-				rgbabuf[i+3] = frame[i+3]
-			case "BGR4":
 				rgbabuf[i] = frame[i+2]
 				rgbabuf[i+1] = frame[i+1]
 				rgbabuf[i+2] = frame[i]
+				rgbabuf[i+3] = frame[i+3]
+			case "BGR4":
+				rgbabuf[i] = frame[i]
+				rgbabuf[i+1] = frame[i+1]
+				rgbabuf[i+2] = frame[i+2]
 				rgbabuf[i+3] = frame[i+3]
 			}
 		}
