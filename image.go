@@ -9,7 +9,7 @@ import (
 	"time"
 
 	"github.com/disintegration/imaging"
-
+	rgblib "github.com/pixiv/go-libjpeg/rgb"
 	"github.com/pkg/errors"
 )
 
@@ -143,24 +143,21 @@ func decodePlanarYUV(frame []byte, f string, width uint32, height uint32) (image
 // RGB decoder, it supports RGB3, BGR3.
 func decodeRGB(frame []byte, f string, width uint32, height uint32) (image.Image, error) {
 
-	rgb := image.NewRGBA(image.Rect(0, 0, int(width), int(height)))
-	rgbbuf := make([]uint8, 3*int(width)*int(height))
+	rgb := rgblib.NewImage(image.Rect(0, 0, int(width), int(height)))
 	for i := range frame {
 		if i%3 == 0 {
 			switch f {
 			case "RGB3":
-				rgbbuf[i] = frame[i]
-				rgbbuf[i+1] = frame[i+1]
-				rgbbuf[i+2] = frame[i+2]
+				rgb.Pix[i] = frame[i]
+				rgb.Pix[i+1] = frame[i+1]
+				rgb.Pix[i+2] = frame[i+2]
 			case "BGR3":
-				rgbbuf[i] = frame[i+2]
-				rgbbuf[i+1] = frame[i+1]
-				rgbbuf[i+2] = frame[i]
+				rgb.Pix[i] = frame[i+2]
+				rgb.Pix[i+1] = frame[i+1]
+				rgb.Pix[i+2] = frame[i]
 			}
 		}
 	}
-	rgb.Pix = rgbbuf
-	rgb.Stride = 3 * int(width)
 	return rgb, nil
 }
 
