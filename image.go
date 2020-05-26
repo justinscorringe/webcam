@@ -23,7 +23,7 @@ var rgba = []string{"RGB4", "BGR4"}
 
 // Conversion of raw image formats to compressed jpegs
 // Conversion is categorised by a string 4CC code for code readibility
-func Compress(frame []byte, format string, width uint32, height uint32, quality uint32, rotation uint32) ([]byte, string, error) {
+func Compress(frame []byte, format string, width uint32, height uint32, quality uint32, rotation string) ([]byte, string, error) {
 	// Check we actually support this format
 	if _, ok := formats[format]; !ok {
 		if format == "JPEG" || format == "MJPG" {
@@ -188,14 +188,14 @@ func decodeRGBA(frame []byte, f string, width uint32, height uint32) (image.Imag
 }
 
 // Rotates the image based on int argument (90, 180, 270)
-func rotateImage(img image.Image, rotation uint32) image.Image {
+func rotateImage(img image.Image, rotation string) image.Image {
 
 	switch rotation {
-	case 90:
+	case "90", "90CW", "90cw", "270ccw", "270CCW":
 		img = imaging.Rotate90(img)
-	case 180:
+	case "180", "180cw", "180CW", "180ccw", "180CCW":
 		img = imaging.Rotate180(img)
-	case 270:
+	case "270", "270CW", "270cw", "90ccw", "90CCW":
 		img = imaging.Rotate270(img)
 	default:
 	}
