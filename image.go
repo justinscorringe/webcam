@@ -49,8 +49,7 @@ func Compress(frame []byte, format string, width uint32, height uint32, quality 
 	//Resize
 	if rwidth != 0 {
 		// If height is 0, aspect ratio will be maintained
-		decodedImage = imaging.Resize(decodedImage, rwidth, rheight, imaging.Lanczos)
-
+		decodedImage = resizeImage(decodedImage, rwidth, rheight, quality)
 	}
 
 	// Compress to jpeg
@@ -206,6 +205,18 @@ func rotateImage(img image.Image, rotation string) image.Image {
 	case "270", "270CW", "270cw", "90ccw", "90CCW":
 		img = imaging.Rotate270(img)
 	default:
+	}
+	return img
+}
+
+// Resize the image to a given width and height, quality discerning resize technique
+func resizeImage(img image.Image, width int, height int, quality uint32) image.Image {
+	if quality >= 75 {
+		img = imaging.Resize(img, width, height, imaging.Lanczos)
+	} else if quality >= 50 {
+		img = imaging.Resize(img, width, height, imaging.CatmullRom)
+	} else {
+		img = imaging.Resize(img, width, height, imaging.Box)
 	}
 	return img
 }
