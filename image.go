@@ -23,7 +23,7 @@ var rgba = []string{"RGB4", "BGR4"}
 
 // Conversion of raw image formats to compressed jpegs
 // Conversion is categorised by a string 4CC code for code readibility
-func Compress(frame []byte, format string, width uint32, height uint32, quality uint32, rotation string) ([]byte, string, error) {
+func Compress(frame []byte, format string, width uint32, height uint32, quality uint32, rotation string, rwidth int, rheight int) ([]byte, string, error) {
 	// Check we actually support this format
 	if _, ok := formats[format]; !ok {
 		if format == "JPEG" || format == "MJPG" {
@@ -43,10 +43,18 @@ func Compress(frame []byte, format string, width uint32, height uint32, quality 
 	if err != nil {
 		return nil, "error encoding", err
 	}
-	rotatedImage := rotateImage(decodedImage, rotation)
+	// Rotate
+	decodedImage = rotateImage(decodedImage, rotation)
+
+	//Resize
+	if rwidth != 0 {
+		// If height is 0, aspect ratio will be maintained
+		decodedImage = imaging.Resize(decodedImage, rwidth, rheight, imaging.Lanczos)
+
+	}
 
 	// Compress to jpeg
-	compressedImage, err := encodeJPEG(rotatedImage, quality)
+	compressedImage, err := encodeJPEG(decodedImage, quality)
 	if err != nil {
 		return nil, "error compressing", err
 	}
